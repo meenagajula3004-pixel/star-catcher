@@ -1,170 +1,296 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Star Catcher</title>
-    <style>
-      :root { color-scheme: dark; }
-      * { box-sizing: border-box; }
-      body {
-        min-height: 100vh;
-        margin: 0;
-        display: grid;
-        place-items: center;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        background: radial-gradient(circle at top, #313b86, #10132e 60%, #090a1a);
-      }
-      .game-shell { width: min(92vw, 500px); }
-      .title { margin: 0 0 12px; text-align: center; font-size: clamp(2rem, 7vw, 3rem); letter-spacing: .04em; color: #fff8bd; text-shadow: 0 3px 0 #9b639e; }
-      .panel { position: relative; overflow: hidden; border: 5px solid #f9d871; border-radius: 24px; background: #1c2360; box-shadow: 0 18px 40px #07081799; }
-      canvas { display: block; width: 100%; height: auto; background: linear-gradient(#202867, #4c4ca0 70%, #7c589b); }
-      .hud { position: absolute; inset: 14px 16px auto; display: flex; justify-content: space-between; color: white; font-weight: bold; font-size: 1.05rem; text-shadow: 0 2px 2px #1d1b48; pointer-events: none; }
-      .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; background: #101139a8; }
-      .card { max-width: 330px; padding: 24px; border: 3px solid #ffe585; border-radius: 20px; background: #282365; box-shadow: 0 8px 0 #15143d; color: #fff; }
-      .card h2 { margin: 0 0 10px; color: #fff2a8; font-size: 1.8rem; }
-      .card p { margin: 0 0 18px; line-height: 1.45; }
-      button { border: 0; border-radius: 999px; padding: 12px 25px; background: #ffcf54; color: #372348; font-size: 1rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 0 #bd783b; }
-      button:hover { transform: translateY(-1px); background: #ffe075; }
-      .help { margin: 12px 0 0; text-align: center; color: #e8e6ff; font-size: .9rem; }
-    </style>
-  </head>
-  <body>
-    <main class="game-shell">
-      <h1 class="title">Star Catcher</h1>
-      <section class="panel">
-        <canvas id="game" width="500" height="650" aria-label="Star Catcher game"></canvas>
-        <div class="hud"><span id="score">Stars: 0</span><span id="lives">Lives: 3</span></div>
-        <div class="overlay" id="overlay">
-          <div class="card">
-            <h2 id="message">Ready?</h2>
-            <p id="instructions">Move the basket and catch the falling stars. Don't let three fall away!</p>
-            <button id="startButton">Play!</button>
-          </div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Star Catcher</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Arial, sans-serif;
+      background: #121638;
+      color: white;
+    }
+
+    .game-box {
+      width: min(92vw, 500px);
+      text-align: center;
+    }
+
+    h1 {
+      color: #ffe77b;
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    .game-area {
+      position: relative;
+      border: 4px solid #ffe77b;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      background: linear-gradient(#202866, #7e5a9a);
+    }
+
+    .hud {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    #startScreen {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(12, 14, 50, 0.75);
+    }
+
+    .card {
+      background: #2a2869;
+      border: 3px solid #ffe77b;
+      border-radius: 18px;
+      padding: 24px;
+      margin: 20px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 30px;
+      background: #ffd35c;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .help { color: #ddd9ff; }
+  </style>
+</head>
+
+<body>
+  <div class="game-box">
+    <h1>⭐ Star Catcher ⭐</h1>
+
+    <div class="game-area">
+      <canvas id="game" width="500" height="650"></canvas>
+
+      <div class="hud">
+        <span id="score">Stars: 0</span>
+        <span id="lives">Lives: 3</span>
+      </div>
+
+      <div id="startScreen">
+        <div class="card">
+          <h2 id="title">Ready?</h2>
+          <p id="message">Catch the falling stars!<br>Use ← → or A and D.</p>
+          <button id="playButton">Play!</button>
         </div>
-      </section>
-      <p class="help">Use ← and →, A and D, or the buttons on your phone.</p>
-    </main>
+      </div>
+    </div>
 
-    <script>
-      const canvas = document.querySelector('#game');
-      const ctx = canvas.getContext('2d');
-      const scoreText = document.querySelector('#score');
-      const livesText = document.querySelector('#lives');
-      const overlay = document.querySelector('#overlay');
-      const message = document.querySelector('#message');
-      const instructions = document.querySelector('#instructions');
-      const startButton = document.querySelector('#startButton');
+    <p class="help">Move using ← → or A / D</p>
+  </div>
 
-      const keys = { left: false, right: false };
-      let basket, stars, score, lives, playing, lastTime, spawnTimer;
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
 
-      function resetGame() {
-        basket = { x: 210, y: 572, width: 80, height: 28, speed: 360 };
-        stars = [];
-        score = 0;
-        lives = 3;
-        spawnTimer = 0;
-        updateHud();
-      }
+    const scoreText = document.getElementById("score");
+    const livesText = document.getElementById("lives");
+    const startScreen = document.getElementById("startScreen");
+    const playButton = document.getElementById("playButton");
+    const title = document.getElementById("title");
+    const message = document.getElementById("message");
 
-      function updateHud() {
-        scoreText.textContent = `Stars: ${score}`;
-        livesText.textContent = `Lives: ${lives}`;
-      }
+    let basket;
+    let stars;
+    let score;
+    let lives;
+    let playing = false;
+    let left = false;
+    let right = false;
+    let lastTime = 0;
+    let spawnTime = 0;
 
-      function startGame() {
-        resetGame();
-        playing = true;
-        overlay.hidden = true;
-        lastTime = performance.now();
-        requestAnimationFrame(gameLoop);
-      }
+    function newGame() {
+      basket = {
+        x: 210,
+        y: 580,
+        width: 80,
+        height: 25,
+        speed: 350
+      };
 
-      function addStar() {
-        const size = 12 + Math.random() * 9;
-        stars.push({ x: Math.random() * (500 - size * 2) + size, y: -25, size, speed: 130 + Math.min(score * 5, 180) + Math.random() * 70, spin: Math.random() * Math.PI });
-      }
+      stars = [];
+      score = 0;
+      lives = 3;
+      spawnTime = 0;
 
-      function update(delta) {
-        if (keys.left) basket.x -= basket.speed * delta;
-        if (keys.right) basket.x += basket.speed * delta;
-        basket.x = Math.max(0, Math.min(500 - basket.width, basket.x));
+      scoreText.textContent = "Stars: 0";
+      livesText.textContent = "Lives: 3";
+    }
 
-        spawnTimer += delta;
-        const spawnEvery = Math.max(.38, .95 - score * .02);
-        if (spawnTimer >= spawnEvery) { addStar(); spawnTimer = 0; }
-
-        for (let i = stars.length - 1; i >= 0; i--) {
-          const star = stars[i];
-          star.y += star.speed * delta;
-          star.spin += delta * 4;
-          const caught = star.y + star.size > basket.y && star.y - star.size < basket.y + basket.height && star.x > basket.x && star.x < basket.x + basket.width;
-          if (caught) { stars.splice(i, 1); score++; updateHud(); }
-          else if (star.y - star.size > 650) {
-            stars.splice(i, 1);
-            lives--;
-            updateHud();
-            if (lives <= 0) endGame();
-          }
-        }
-      }
-
-      function drawStar(x, y, radius, rotation) {
-        ctx.save();
-        ctx.translate(x, y); ctx.rotate(rotation);
-        ctx.beginPath();
-        for (let point = 0; point < 10; point++) {
-          const r = point % 2 === 0 ? radius : radius * .44;
-          const angle = -Math.PI / 2 + point * Math.PI / 5;
-          point ? ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r) : ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
-        }
-        ctx.closePath();
-        ctx.fillStyle = '#fff28a'; ctx.shadowColor = '#ffe85c'; ctx.shadowBlur = 14; ctx.fill();
-        ctx.restore();
-      }
-
-      function draw() {
-        ctx.clearRect(0, 0, 500, 650);
-        ctx.fillStyle = '#ffffff';
-        for (const dot of [{x:60,y:90},{x:430,y:120},{x:108,y:260},{x:382,y:335},{x:45,y:480},{x:457,y:460}]) { ctx.globalAlpha = .6; ctx.fillRect(dot.x, dot.y, 3, 3); }
-        ctx.globalAlpha = 1;
-        for (const star of stars) drawStar(star.x, star.y, star.size, star.spin);
-        ctx.fillStyle = '#e97d67'; ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
-        ctx.fillStyle = '#ffe4ad'; ctx.fillRect(basket.x + 7, basket.y + 6, basket.width - 14, 9);
-        ctx.fillStyle = '#b34c68'; ctx.fillRect(basket.x + 10, basket.y + basket.height, basket.width - 20, 6);
-      }
-
-      function gameLoop(now) {
-        if (!playing) return;
-        const delta = Math.min((now - lastTime) / 1000, .05);
-        lastTime = now;
-        update(delta); draw();
-        if (playing) requestAnimationFrame(gameLoop);
-      }
-
-      function endGame() {
-        playing = false;
-        message.textContent = 'Game over!';
-        instructions.textContent = `You caught ${score} ${score === 1 ? 'star' : 'stars'}! Can you beat that score?`;
-        startButton.textContent = 'Play again';
-        overlay.hidden = false;
-      }
-
-      function setKey(event, isDown) {
-        if (['ArrowLeft', 'a', 'A'].includes(event.key)) { keys.left = isDown; event.preventDefault(); }
-        if (['ArrowRight', 'd', 'D'].includes(event.key)) { keys.right = isDown; event.preventDefault(); }
-      }
-      window.addEventListener('keydown', e => setKey(e, true));
-      window.addEventListener('keyup', e => setKey(e, false));
-      canvas.addEventListener('pointermove', event => {
-        if (!playing) return;
-        const rect = canvas.getBoundingClientRect();
-        basket.x = Math.max(0, Math.min(500 - basket.width, ((event.clientX - rect.left) / rect.width) * 500 - basket.width / 2));
+    function makeStar() {
+      stars.push({
+        x: 25 + Math.random() * 450,
+        y: -20,
+        size: 12 + Math.random() * 9,
+        speed: 140 + Math.random() * 100 + score * 4
       });
-      startButton.addEventListener('click', startGame);
-      resetGame(); draw();
-    </script>
-  </body>
+    }
+
+    function drawStar(x, y, size) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? size : size / 2;
+        const angle = -Math.PI / 2 + i * Math.PI / 5;
+
+        if (i === 0) {
+          ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+        } else {
+          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+        }
+      }
+
+      ctx.closePath();
+      ctx.fillStyle = "#fff176";
+      ctx.shadowColor = "#fff176";
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // tiny sky dots
+      ctx.fillStyle = "white";
+      for (const dot of [[50, 80], [140, 170], [400, 110], [450, 330], [90, 400]]) {
+        ctx.fillRect(dot[0], dot[1], 3, 3);
+      }
+
+      // stars
+      for (const star of stars) {
+        drawStar(star.x, star.y, star.size);
+      }
+
+      // basket
+      ctx.fillStyle = "#f08068";
+      ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+
+      ctx.fillStyle = "#ffe0a3";
+      ctx.fillRect(basket.x + 8, basket.y + 6, basket.width - 16, 8);
+
+      ctx.fillStyle = "#a94662";
+      ctx.fillRect(basket.x + 12, basket.y + basket.height, basket.width - 24, 6);
+    }
+
+    function update(delta) {
+      if (left) basket.x -= basket.speed * delta;
+      if (right) basket.x += basket.speed * delta;
+
+      if (basket.x < 0) basket.x = 0;
+      if (basket.x > canvas.width - basket.width) {
+        basket.x = canvas.width - basket.width;
+      }
+
+      spawnTime += delta;
+
+      if (spawnTime > 0.8) {
+        makeStar();
+        spawnTime = 0;
+      }
+
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const star = stars[i];
+        star.y += star.speed * delta;
+
+        const caught =
+          star.y + star.size > basket.y &&
+          star.y - star.size < basket.y + basket.height &&
+          star.x > basket.x &&
+          star.x < basket.x + basket.width;
+
+        if (caught) {
+          stars.splice(i, 1);
+          score++;
+          scoreText.textContent = "Stars: " + score;
+        }
+
+        if (star.y > canvas.height + 30) {
+          stars.splice(i, 1);
+          lives--;
+          livesText.textContent = "Lives: " + lives;
+
+          if (lives <= 0) gameOver();
+        }
+      }
+    }
+
+    function loop(time) {
+      if (!playing) return;
+
+      const delta = Math.min((time - lastTime) / 1000, 0.05);
+      lastTime = time;
+
+      update(delta);
+      draw();
+
+      requestAnimationFrame(loop);
+    }
+
+    function startGame() {
+      newGame();
+      playing = true;
+
+      // This removes the start box completely.
+      startScreen.style.display = "none";
+
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function gameOver() {
+      playing = false;
+      title.textContent = "Game Over!";
+      message.textContent = "You caught " + score + " stars!";
+      playButton.textContent = "Play Again";
+      startScreen.style.display = "grid";
+    }
+
+    playButton.addEventListener("click", startGame);
+
+    window.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowLeft" || event.key === "a") left = true;
+      if (event.key === "ArrowRight" || event.key === "d") right = true;
+    });
+
+    window.addEventListener("keyup", function (event) {
+      if (event.key === "ArrowLeft" || event.key === "a") left = false;
+      if (event.key === "ArrowRight" || event.key === "d") right = false;
+    });
+
+    newGame();
+    draw();
+  </script>
+</body>
 </html>
